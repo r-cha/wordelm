@@ -35,15 +35,13 @@ type alias Model =
 
 type alias Mark = Int  -- 0=no, 1=yesish, 2=yes
 
-todaysAnswer : String
-todaysAnswer = "OPALS"  -- TODO: RE.choice ["WORKS", "FLAKE", "OPALS"]
 
 emptyModel : Model
 emptyModel = 
     { current = []
     , guesses = []
     , scores = []
-    , answer = todaysAnswer
+    , answer = "OPALS"  -- TODO: RE.choice ["WORKS", "FLAKE", "OPALS"]
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -82,7 +80,7 @@ update msg model =
                 ( { model 
                     | current = []
                     , guesses = guess :: model.guesses
-                    , scores = (checkGuess guess todaysAnswer) :: model.scores
+                    , scores = (checkGuess guess model.answer) :: model.scores
                   }
                 , Cmd.none
                 )
@@ -103,12 +101,11 @@ update msg model =
             ( model, Cmd.none )
 
 
-checkChars : (Char, Char) -> Mark
-checkChars (guess, answer) =
+checkChars : String -> (Char, Char) -> Mark
+checkChars fullAnswer (guess, answer) =
     if guess == answer then
         2
-    else if String.contains (String.fromChar guess) todaysAnswer then
-        -- TODO: Remove dependence on global answer
+    else if String.contains (String.fromChar guess) fullAnswer then
         1
     else
         0
@@ -116,7 +113,7 @@ checkChars (guess, answer) =
 checkGuess : String -> String -> List Mark
 checkGuess guess answer =
     List.map 
-      checkChars
+      (checkChars answer)
       ( List.map2 
           Tuple.pair
           (String.toList guess) (String.toList answer)
