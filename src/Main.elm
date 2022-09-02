@@ -3,8 +3,9 @@ module Main exposing (..)
 -- Wordle clone in Elm because ✨ why not ✨
 
 import Browser
-import Browser.Events exposing (onKeyPress)
+import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
+import Html.Attributes as Attr
 import Json.Decode as Decode
 
 import Random.Extra as RE
@@ -26,8 +27,10 @@ main =
 type alias Model = 
     { current : List Char
     , guesses : List String
-    , scores : List Mark
+    , scores : List (List Mark)
     , answer : String
+    -- TODO: Use a single 5x6 array
+    -- TODO: Add an error message field
     }
 
 type alias Mark = Int  -- 0=no, 1=yesish, 2=yes
@@ -62,8 +65,9 @@ update msg model =
         Character char ->
             -- Process a letter being typed.
             -- It should be added to model.current if there is room
+            -- TODO: More character filtering
             if List.length model.current < 5 then
-                ( { model | current = model.current ++ [char]}
+                ( { model | current = char :: model.current }
                 , Cmd.none
                 )
             else
@@ -73,12 +77,12 @@ update msg model =
             -- Process a submission.
             -- This should only do anything if there are 5 letters available.
             if List.length model.current == 5 then
-                let guess = String.fromList model.current
+                let guess = String.reverse (String.fromList model.current)
                 in
                 ( { model 
                     | current = []
-                    , guesses = model.guesses ++ [guess]
-                    , scores = model.scores ++ (checkGuess guess todaysAnswer)
+                    , guesses = guess :: model.guesses
+                    , scores = (checkGuess guess todaysAnswer) :: model.scores
                   }
                 , Cmd.none
                 )
@@ -86,19 +90,14 @@ update msg model =
                 ( model, Cmd.none )
 
         Control "Backspace" ->
-            -- TODO: Not working :(
-            -- Should just remove the last letter from current
-            if List.length model.current > 0 then    
-                ( { model | current = 
-                    ( List.take 
-                        ( List.length model.current - 1)
-                        model.current
-                    )
-                  }
-                , Cmd.none
-                )
-            else
-                ( model, Cmd.none )
+            -- Remove the last letter
+            let
+                old = 
+                    case model.current of
+                        _ :: tail -> tail
+                        [] -> []
+            in 
+            ( { model | current = old }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -108,12 +107,11 @@ checkChars : (Char, Char) -> Mark
 checkChars (guess, answer) =
     if guess == answer then
         2
+    else if String.contains (String.fromChar guess) todaysAnswer then
+        -- TODO: Remove dependence on global answer
+        1
     else
-        if String.contains (String.fromChar guess) todaysAnswer then
-            -- TODO: Remove dependence on global answer
-            1
-        else
-            0
+        0
 
 checkGuess : String -> String -> List Mark
 checkGuess guess answer =
@@ -130,29 +128,27 @@ checkGuess guess answer =
 view : Model -> Html Msg
 view model = 
     div
-        []
+        [ Attr.class "wordelm-app"]
         [ h1 [] [ text "Wordelm"]
-        , h2 [] [ text "Previous: "]
         , viewGuesses model.guesses
-        , h2 [] [ text "Typing: "]
         , viewCurrent model.current
         ]
 
 viewCurrent : List Char -> Html Msg
 viewCurrent current = 
-    Html.text (String.fromList(current))
+    Html.text (String.reverse (String.fromList current))
 
 viewGuesses : List String -> Html Msg
 viewGuesses guesses =
     Html.ul
-        []
-        (List.map viewGuess guesses)
+        [ Attr.class "guess-list"]
+        (List.reverse (List.map viewGuess guesses))
 
 viewGuess : String -> Html Msg
 viewGuess guess = 
     -- TODO: Visualize score of guess (model.scores)
     Html.li
-        []
+        [ Attr.class "guess" ]
         [ text guess ]
 
 
@@ -161,7 +157,7 @@ viewGuess guess =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    onKeyPress keyDecoder
+    onKeyDown keyDecoder
 
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
