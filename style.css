@@ -1,24 +1,47 @@
-html,
-body {
-    margin: 0;
-    padding: 0;
+:root {
+    --color-tone-1: #ffffff;
+    --color-tone-2: #818384;
+    --color-tone-3: #565758;
+    --color-tone-4: #3a3a3c;
+    --color-tone-5: #272729;
+    --color-tone-6: #1a1a1b;
+    --color-tone-7: #121213;
+    --color-tone-8: #ffffff;
+    --color-tone-9: #424242;
+    --color-tone-10: #dfdfdf;
+    --color-tone-11: #dfdfdf;
+    --color-tone-12: #dfdfdf;
+    --color-nav-hover: #2f2f31;
+    --opacity-50: rgba(0, 0, 0, 0.5);
+    --error-background: var(--color-tone-7);
+    --icon-disabled: #59595a;
+    --color-background: var(--color-tone-7)
 }
-
-.wordelm-app {
-    background: #fff;
-    margin: 130px 0 40px 0;
-    position: relative;
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2),
-                0 25px 50px 0 rgba(0, 0, 0, 0.1);
+  
+html {
+    height:100%;
+    background-color: var(--color-background);
 }
-
 body {
     font: 14px 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    line-height: 1.4em;
-    background: #f5f5f5;
-    color: #4d4d4d;
+    height:100%;
+    background-color:var(--color-background);
+    margin:0;
+    padding:0;
     min-width: 230px;
     max-width: 550px;
     margin: 0 auto;
-    font-weight: 300;
+    overflow-y:hidden
+}
+
+.wordelm-app {
+    background: var(--color-tone-4);
+    margin: 130px 0 40px 0;
+    position: relative;
+    box-shadow: 5px 5px 10px 0px #000;
+}
+
+.wordelm-app h1 {
+    color: var(--color-tone-1);
+    text-align: center;
 }
