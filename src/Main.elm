@@ -6,6 +6,7 @@ import Browser
 import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
 import Html.Attributes as Attr
+import Html.Events exposing (onClick)
 import Json.Decode as Decode
 
 
@@ -39,7 +40,7 @@ type alias Model =
 
 
 type alias Mark =
-    Int
+    Int -- 0=no, 1=sortof, 2=yes
 
 
 
@@ -78,7 +79,10 @@ update msg model =
             -- Process a letter being typed.
             -- It should be added to model.current if there is room
             -- TODO: More character filtering
-            if List.length model.current < 5 then
+            if List.length model.guesses == 6 then
+                ( model, Cmd.none )
+
+            else if List.length model.current < 5 then
                 ( { model | current = char :: model.current }
                 , Cmd.none
                 )
@@ -124,6 +128,7 @@ update msg model =
 
 checkChars : String -> ( Char, Char ) -> Mark
 checkChars fullAnswer ( guess, answer ) =
+    -- TODO (maybe): make wordle-complete in terms of repeated guesses
     if guess == answer then
         2
 
@@ -155,7 +160,7 @@ view model =
         [ Attr.class "wordelm-app" ]
         [ heading
         , viewBoard model
-        , viewKeys
+        , viewKeyboard
         ]
 
 
@@ -168,61 +173,54 @@ viewBoard : Model -> Html Msg
 viewBoard model =
     div
         [ Attr.class "board" ]
-        [ viewRow model 0
-        , viewRow model 1
-        , viewRow model 2
-        , viewRow model 3
-        , viewRow model 4
-        , viewRow model 5
-        ]
+        ((List.reverse (List.map viewRow model.guesses)) ++ 
+        [viewRow (String.reverse (String.fromList model.current))])
 
 
-viewRow : Model -> Int -> Html Msg
-viewRow model index =
+viewRow : String -> Html Msg
+viewRow guess =
     div
         [ Attr.class "row" ]
-        [ viewTile 'R' 0
-        , viewTile 'O' 1
-        , viewTile 'C' 2
-        ]
+        (List.map viewTile (String.toList guess))
 
 
-viewTile : Char -> Mark -> Html Msg
-viewTile letter mark =
+viewTile : Char -> Html Msg
+viewTile letter =
     div
         [ Attr.class "tile" ]
         [ Html.text (String.fromChar letter) ]
 
 
-viewKeys : Html Msg
-viewKeys =
+viewKeyboard : Html Msg
+viewKeyboard =
     div
         [ Attr.class "keyboard" ]
-        [ Html.p [ Attr.class "keyboard-row" ] [ Html.text "QWERTYUIOP" ]
-        , Html.p [ Attr.class "keyboard-row" ] [ Html.text "ASDFGHJKL" ]
-        , Html.p [ Attr.class "keyboard-row" ] [ Html.text " ZXCVBNM<" ]
-        ]
+        (List.map viewKeyboardRow ["QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<"])
 
 
-viewCurrent : List Char -> Html Msg
-viewCurrent current =
-    Html.text (String.reverse (String.fromList current))
+viewKeyboardRow : String -> Html Msg
+viewKeyboardRow row =
+    div
+        [ Attr.class "keyboard-row" ]
+        (List.map viewKeyboardKey (String.toList row))
 
 
-viewGuesses : List String -> Html Msg
-viewGuesses guesses =
-    Html.ul
-        [ Attr.class "guess-list" ]
-        (List.reverse (List.map viewGuess guesses))
+translateKey: Char -> String
+translateKey key =
+    if key == ' ' then
+        "Enter"
+    else if key == '<' then
+        "Backspace"
+    else
+        (String.fromChar key)
 
 
-viewGuess : String -> Html Msg
-viewGuess guess =
-    -- TODO: Visualize score of guess (model.scores)
-    Html.li
-        [ Attr.class "guess" ]
-        [ text guess ]
-
+viewKeyboardKey : Char -> Html Msg
+viewKeyboardKey key =
+    Html.button
+        [ Attr.class "keyboard-key" 
+        , onClick (Character key) ]
+        [ Html.text (translateKey key) ]
 
 
 -- SUBSCRIPTIONS

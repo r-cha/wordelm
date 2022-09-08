@@ -15,8 +15,9 @@
     --icon-disabled: #59595a;
     --opacity-50: rgba(0, 0, 0, 0.5);
     --error-background: var(--color-tone-7);
-    --color-background: var(--color-tone-7)
-    --tile-text-color: var(--color-tone-1)
+    --color-background: var(--color-tone-7);
+    --tile-text-color: var(--color-tone-1);
+    --key-text-color: var(--color-tone-1);
 }
   
 html {
@@ -36,8 +37,8 @@ body {
 }
 
 .wordelm-app {
-    background: var(--color-tone-4);
-    margin: 130px 0 40px 0;
+    background: var(--color-tone-7);
+    margin: 0 0 0 0;
     position: relative;
     box-shadow: 5px 5px 10px 0px #000;
 }
@@ -74,6 +75,7 @@ body {
     box-sizing: border-box;
     color: var(--tile-text-color);
     text-transform: uppercase;
+    user-select: none;
 }
 
 .keyboard {
