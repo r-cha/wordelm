@@ -18,6 +18,11 @@
     --color-background: var(--color-tone-7);
     --tile-text-color: var(--color-tone-1);
     --key-text-color: var(--color-tone-1);
+    --darkendGreen: #538d4e;
+    --darkendYellow: #b59f3b;
+    --color-present: var(--darkendYellow);
+    --color-correct: var(--darkendGreen);
+    --color-absent: var(--color-tone-4);
 }
   
 html {

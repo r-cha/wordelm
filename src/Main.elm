@@ -33,18 +33,12 @@ type alias Model =
     , guesses : List String
     , scores : List (List Mark)
     , answer : String
-
-    -- TODO: Use a single 5x6 array
     -- TODO: Add an error message field
     }
 
 
 type alias Mark =
-    Int -- 0=no, 1=sortof, 2=yes
-
-
-
--- 0=no, 1=yesish, 2=yes
+    Int -- -1=unknown, 0=absent, 1=present, 2=correct
 
 
 emptyModel : Model
