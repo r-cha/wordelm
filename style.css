@@ -107,7 +107,7 @@ body {
 .keyboard {
     display: block;
     height: var(--keyboard-height);
-    margin: 0 8px;
+    margin: 0 8px 20px;
 }
 
 .keyboard-row {
