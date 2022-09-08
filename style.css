@@ -92,6 +92,18 @@ body {
     height: 62px;
 }
 
+.tile-correct {
+    color: var(--color-correct);
+}
+
+.tile-present {
+    color: var(--color-present);
+}
+
+.tile-absent {
+    color: var(--color-absent);
+}
+
 .keyboard {
     display: block;
     height: var(--keyboard-height);
