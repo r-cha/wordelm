@@ -12,10 +12,11 @@
     --color-tone-11: #dfdfdf;
     --color-tone-12: #dfdfdf;
     --color-nav-hover: #2f2f31;
+    --icon-disabled: #59595a;
     --opacity-50: rgba(0, 0, 0, 0.5);
     --error-background: var(--color-tone-7);
-    --icon-disabled: #59595a;
     --color-background: var(--color-tone-7)
+    --tile-text-color: var(--color-tone-1)
 }
   
 html {
@@ -41,7 +42,67 @@ body {
     box-shadow: 5px 5px 10px 0px #000;
 }
 
-.wordelm-app h1 {
+.heading {
     color: var(--color-tone-1);
     text-align: center;
+}
+
+.board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    grid-gap: 5px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 5px;
+}
+
+.tile {
+    border: 2px solid var(--color-tone-2);
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    line-height: 2rem;
+    font-weight: bold;
+    vertical-align: middle;
+    box-sizing: border-box;
+    color: var(--tile-text-color);
+    text-transform: uppercase;
+}
+
+.keyboard {
+    height: var(--keyboard-height);
+    margin: 0 8px;
+}
+
+.keyboard-row {
+    display: flex;
+    width: 100%;
+    margin: 0 auto 8px;
+    touch-action: manipulation;
+}
+
+.keyboard-key {
+    font-family: inherit;
+    font-weight: bold;
+    border: 0;
+    padding: 0;
+    margin: 0 6px 0 0;
+    height: 58px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    background-color: var(--key-bg);
+    color: var(--key-text-color);
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-transform: uppercase;
 }
