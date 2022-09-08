@@ -37,15 +37,18 @@ body {
 }
 
 .wordelm-app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     background: var(--color-tone-7);
     margin: 0 0 0 0;
     position: relative;
-    box-shadow: 5px 5px 10px 0px #000;
 }
 
 .heading {
     color: var(--color-tone-1);
     text-align: center;
+    border-bottom: 1px solid var(--color-tone-4);
 }
 
 .board {
@@ -54,6 +57,10 @@ body {
     grid-gap: 5px;
     padding: 10px;
     box-sizing: border-box;
+    justify-content: center;
+    width: 350px;
+    height: 420px;
+    margin: 0 auto;
 }
 
 .row {
@@ -76,9 +83,12 @@ body {
     color: var(--tile-text-color);
     text-transform: uppercase;
     user-select: none;
+    width: 62px;
+    height: 62px;
 }
 
 .keyboard {
+    display: block;
     height: var(--keyboard-height);
     margin: 0 8px;
 }

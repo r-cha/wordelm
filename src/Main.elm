@@ -195,14 +195,14 @@ viewKeyboard : Html Msg
 viewKeyboard =
     div
         [ Attr.class "keyboard" ]
-        (List.map viewKeyboardRow ["QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<"])
+        ( List.map viewKeyboardRow ["QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<"] )
 
 
 viewKeyboardRow : String -> Html Msg
 viewKeyboardRow row =
     div
         [ Attr.class "keyboard-row" ]
-        (List.map viewKeyboardKey (String.toList row))
+        ( List.map viewKeyboardKey (String.toList row) )
 
 
 translateKey: Char -> String
@@ -212,15 +212,17 @@ translateKey key =
     else if key == '<' then
         "Backspace"
     else
-        (String.fromChar key)
+        ( String.fromChar key )
 
 
 viewKeyboardKey : Char -> Html Msg
 viewKeyboardKey key =
     Html.button
         [ Attr.class "keyboard-key" 
-        , onClick (toKey (translateKey key)) ]
+        , onClick ( toKey ( translateKey key ) )
+        ]
         [ Html.text (translateKey key) ]
+
 
 
 -- SUBSCRIPTIONS
