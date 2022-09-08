@@ -30,28 +30,33 @@ main =
 
 type alias Model =
     { current : List Char
-    , guesses : List String
-    , scores : List (List Mark)
+    , guesses : List (List (Char, Mark))
     , answer : String
-
-    -- TODO: Use a single 5x6 array
     -- TODO: Add an error message field
     }
 
 
 type alias Mark =
-    Int -- 0=no, 1=sortof, 2=yes
+    Int -- -1=unknown, 0=absent, 1=present, 2=correct
 
-
-
--- 0=no, 1=yesish, 2=yes
+toString : Mark -> String
+toString mark =
+    case mark of
+    0 ->
+        "absent"
+    1 ->
+        "present"
+    2 ->
+        "correct"
+    _ -> 
+        "unknown"
+    
 
 
 emptyModel : Model
 emptyModel =
     { current = []
     , guesses = []
-    , scores = []
     , answer = "OPALS" -- TODO: RE.choice ["WORKS", "FLAKE", "OPALS"]
     }
 
@@ -96,12 +101,11 @@ update msg model =
             if List.length model.current == 5 then
                 let
                     guess =
-                        String.reverse (String.fromList model.current)
+                        List.reverse model.current
                 in
                 ( { model
                     | current = []
-                    , guesses = guess :: model.guesses
-                    , scores = checkGuess guess model.answer :: model.scores
+                    , guesses = checkGuess guess model.answer :: model.guesses
                   }
                 , Cmd.none
                 )
@@ -126,26 +130,26 @@ update msg model =
             ( model, Cmd.none )
 
 
-checkChars : String -> ( Char, Char ) -> Mark
+checkChars : String -> ( Char, Char ) -> (Char, Mark)
 checkChars fullAnswer ( guess, answer ) =
     -- TODO (maybe): make wordle-complete in terms of repeated guesses
     if guess == answer then
-        2
+        (guess, 2)
 
     else if String.contains (String.fromChar guess) fullAnswer then
-        1
+        (guess, 1)
 
     else
-        0
+        (guess, 0)
 
 
-checkGuess : String -> String -> List Mark
+checkGuess : List Char -> String -> List (Char, Mark)
 checkGuess guess answer =
     List.map
         (checkChars answer)
         (List.map2
             Tuple.pair
-            (String.toList guess)
+            guess
             (String.toList answer)
         )
 
@@ -173,15 +177,31 @@ viewBoard : Model -> Html Msg
 viewBoard model =
     div
         [ Attr.class "board" ]
-        ((List.reverse (List.map viewRow model.guesses)) ++ 
-        [viewRow (String.reverse (String.fromList model.current))])
+        ( (List.reverse (List.map viewRow model.guesses)) ++ 
+        [viewCurrent model.current] )
 
 
-viewRow : String -> Html Msg
-viewRow guess =
+viewRow : List (Char, Mark) -> Html Msg
+viewRow guesses =
     div
         [ Attr.class "row" ]
-        (List.map viewTile (String.toList guess))
+        (List.map viewScoredTile guesses)
+
+viewCurrent : List Char -> Html Msg
+viewCurrent current =
+    div 
+        [ Attr.class "row" ]
+        (List.reverse (List.map viewTile current))
+
+
+viewScoredTile : (Char, Mark) -> Html Msg
+viewScoredTile (letter, mark) =
+    div
+        [ Attr.class "tile" ]
+        [  div
+            [ Attr.class ("tile-" ++ (toString mark)) ]
+            [ Html.text (String.fromChar letter) ]
+        ]
 
 
 viewTile : Char -> Html Msg

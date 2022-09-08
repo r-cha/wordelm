@@ -18,6 +18,11 @@
     --color-background: var(--color-tone-7);
     --tile-text-color: var(--color-tone-1);
     --key-text-color: var(--color-tone-1);
+    --darkendGreen: #538d4e;
+    --darkendYellow: #b59f3b;
+    --color-present: var(--darkendYellow);
+    --color-correct: var(--darkendGreen);
+    --color-absent: var(--color-tone-4);
 }
   
 html {
@@ -87,10 +92,22 @@ body {
     height: 62px;
 }
 
+.tile-correct {
+    color: var(--color-correct);
+}
+
+.tile-present {
+    color: var(--color-present);
+}
+
+.tile-absent {
+    color: var(--color-absent);
+}
+
 .keyboard {
     display: block;
     height: var(--keyboard-height);
-    margin: 0 8px;
+    margin: 0 8px 20px;
 }
 
 .keyboard-row {
