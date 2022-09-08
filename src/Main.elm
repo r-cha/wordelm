@@ -219,7 +219,7 @@ viewKeyboardKey : Char -> Html Msg
 viewKeyboardKey key =
     Html.button
         [ Attr.class "keyboard-key" 
-        , onClick (Character key) ]
+        , onClick (toKey (translateKey key)) ]
         [ Html.text (translateKey key) ]
 
 
