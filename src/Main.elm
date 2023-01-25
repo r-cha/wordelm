@@ -7,14 +7,18 @@ import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick)
+import Http
 import Json.Decode as Decode
+import String
+
+import WordList exposing (getWordList, getTodaysWord)
 
 
 
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Int Model Msg
 main =
     Browser.element
         { init = init
@@ -32,6 +36,7 @@ type alias Model =
     { current : List Char
     , guesses : List (List (Char, Mark))
     , answer : String
+    , now : Int
     -- TODO: Add an error message field
     }
 
@@ -48,23 +53,25 @@ toString mark =
         "present"
     2 ->
         "correct"
-    _ -> 
+    _ ->
         "unknown"
-    
 
 
-emptyModel : Model
-emptyModel =
+
+emptyModel : Int -> Model
+emptyModel now =
     { current = []
     , guesses = []
-    , answer = "OPALS" -- TODO: RE.choice ["WORKS", "FLAKE", "OPALS"]
+    , answer = "OPALS"
+    , now = now
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Maybe.withDefault emptyModel Nothing
-    , Cmd.none
+init : Int -> ( Model, Cmd Msg )
+init now =
+    ( emptyModel now
+    , getWordList
+    |> Cmd.map WordsLoaded
     )
 
 
@@ -75,6 +82,7 @@ init _ =
 type Msg
     = Character Char
     | Control String
+    | WordsLoaded (Result Http.Error (List String))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -126,6 +134,14 @@ update msg model =
             in
             ( { model | current = old }, Cmd.none )
 
+        WordsLoaded (Ok words) ->
+            let
+                w = getTodaysWord model.now words
+            in
+                ( { model | answer = w }, Cmd.none )
+
+        WordsLoaded (Err _) ->
+            ( model, Cmd.none )
         _ ->
             ( model, Cmd.none )
 
@@ -177,7 +193,7 @@ viewBoard : Model -> Html Msg
 viewBoard model =
     div
         [ Attr.class "board" ]
-        ( (List.reverse (List.map viewRow model.guesses)) ++ 
+        ( (List.reverse (List.map viewRow model.guesses)) ++
         [viewCurrent model.current] )
 
 
@@ -189,7 +205,7 @@ viewRow guesses =
 
 viewCurrent : List Char -> Html Msg
 viewCurrent current =
-    div 
+    div
         [ Attr.class "row" ]
         (List.reverse (List.map viewTile current))
 
@@ -238,7 +254,7 @@ translateKey key =
 viewKeyboardKey : Char -> Html Msg
 viewKeyboardKey key =
     Html.button
-        [ Attr.class "keyboard-key" 
+        [ Attr.class "keyboard-key"
         , onClick ( toKey ( translateKey key ) )
         ]
         [ Html.text (translateKey key) ]
