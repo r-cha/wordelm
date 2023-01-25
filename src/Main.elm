@@ -96,43 +96,41 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            -- Do Nothing
-            ( model, Cmd.none )
-
         Character char ->
             -- Process a letter being typed.
             if (List.length model.current < 5) && Char.isAlpha char then
                 -- Only if there is a room and it's a letter
-                ( { model | current = char :: model.current }
+                ( { model | current = char :: model.current, error = "" }
                 , Cmd.none
                 )
 
             else
-                ( model, Cmd.none )
+                -- Truly ignore errant input - no message
+                ( { model | error = "" }, Cmd.none )
 
         Control "Enter" ->
             -- Process a submission.
-            -- This should only do anything if there are 5 letters available
-            -- AND the guess is a word
-            if List.length model.current == 5 then
+            if not (List.length model.current == 5) then
+                -- This should only do anything if there are 5 letters available
+                ( { model | error = "Not enough letters" }, Cmd.none )
+
+            else
                 let
                     guess =
                         List.reverse model.current
                 in
-                if List.member (String.fromList guess) model.words then
+                if not (List.member (String.fromList guess) model.words) then
+                    -- AND the guess is a word
+                    ( { model | error = "Not in word list" }, Cmd.none )
+
+                else
                     ( { model
                         | current = []
                         , guesses = checkGuess guess model.answer :: model.guesses
+                        , error = ""
                       }
                     , Cmd.none
                     )
-
-                else
-                    ( model, Cmd.none )
-
-            else
-                ( model, Cmd.none )
 
         Control "Backspace" ->
             -- Remove the last letter
@@ -145,20 +143,20 @@ update msg model =
                         [] ->
                             []
             in
-            ( { model | current = old }, Cmd.none )
+            ( { model | current = old, error = "" }, Cmd.none )
 
         WordsLoaded (Ok words) ->
             let
                 answer =
                     getTodaysWord model.now words
             in
-            ( { model | words = words, answer = answer }, Cmd.none )
+            ( { model | words = words, answer = answer, error = "" }, Cmd.none )
 
         WordsLoaded (Err _) ->
-            ( model, Cmd.none )
+            ( { model | error = "Word list could not be loaded!" }, Cmd.none )
 
         _ ->
-            ( model, Cmd.none )
+            ( { model | error = "" }, Cmd.none )
 
 
 checkChars : String -> ( Char, Char ) -> ( Char, Mark )
@@ -194,6 +192,7 @@ view model =
     div
         [ Attr.class "wordelm-app" ]
         [ heading
+        , viewError model.error
         , viewBoard model
         , viewKeyboard
         ]
@@ -202,6 +201,13 @@ view model =
 heading : Html Msg
 heading =
     h1 [ Attr.class "heading" ] [ text "Wordelm" ]
+
+
+viewError : String -> Html Msg
+viewError error =
+    div
+        [ Attr.class "error-text" ]
+        [ Html.text error ]
 
 
 viewBoard : Model -> Html Msg
