@@ -36,7 +36,9 @@ type alias Model =
     { current : List Char
     , guesses : List (List ( Char, Mark ))
     , answer : String
+    , words : List String
     , now : Int
+    , error : String
     }
 
 
@@ -66,7 +68,9 @@ emptyModel now =
     { current = []
     , guesses = []
     , answer = "OPALS"
+    , words = []
     , now = now
+    , error = ""
     }
 
 
@@ -83,7 +87,8 @@ init now =
 
 
 type Msg
-    = Character Char
+    = NoOp
+    | Character Char
     | Control String
     | WordsLoaded (Result Http.Error (List String))
 
@@ -91,14 +96,14 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            -- Do Nothing
+            ( model, Cmd.none )
+
         Character char ->
             -- Process a letter being typed.
-            -- It should be added to model.current if there is room
-            -- TODO: More character filtering
-            if List.length model.guesses == 6 then
-                ( model, Cmd.none )
-
-            else if List.length model.current < 5 then
+            if (List.length model.current < 5) && Char.isAlpha char then
+                -- Only if there is a room and it's a letter
                 ( { model | current = char :: model.current }
                 , Cmd.none
                 )
@@ -108,18 +113,23 @@ update msg model =
 
         Control "Enter" ->
             -- Process a submission.
-            -- This should only do anything if there are 5 letters available.
+            -- This should only do anything if there are 5 letters available
+            -- AND the guess is a word
             if List.length model.current == 5 then
                 let
                     guess =
                         List.reverse model.current
                 in
-                ( { model
-                    | current = []
-                    , guesses = checkGuess guess model.answer :: model.guesses
-                  }
-                , Cmd.none
-                )
+                if List.member (String.fromList guess) model.words then
+                    ( { model
+                        | current = []
+                        , guesses = checkGuess guess model.answer :: model.guesses
+                      }
+                    , Cmd.none
+                    )
+
+                else
+                    ( model, Cmd.none )
 
             else
                 ( model, Cmd.none )
@@ -139,10 +149,10 @@ update msg model =
 
         WordsLoaded (Ok words) ->
             let
-                w =
+                answer =
                     getTodaysWord model.now words
             in
-            ( { model | answer = w }, Cmd.none )
+            ( { model | words = words, answer = answer }, Cmd.none )
 
         WordsLoaded (Err _) ->
             ( model, Cmd.none )
@@ -223,7 +233,7 @@ viewScoredTile ( letter, mark ) =
         [ Attr.class "tile" ]
         [ div
             [ Attr.class ("tile-" ++ toString mark) ]
-            [ Html.text (String.fromChar letter) ]
+            [ Html.text (String.fromChar (Char.toUpper letter)) ]
         ]
 
 
@@ -231,7 +241,7 @@ viewTile : Char -> Html Msg
 viewTile letter =
     div
         [ Attr.class "tile" ]
-        [ Html.text (String.fromChar letter) ]
+        [ Html.text (String.fromChar (Char.toUpper letter)) ]
 
 
 viewKeyboard : Html Msg
@@ -287,7 +297,7 @@ toKey : String -> Msg
 toKey string =
     case String.uncons string of
         Just ( char, "" ) ->
-            Character (Char.toUpper char)
+            Character (Char.toLower char)
 
         _ ->
             Control string
