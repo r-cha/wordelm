@@ -7,14 +7,17 @@ import Browser.Events exposing (onKeyDown)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick)
+import Http
 import Json.Decode as Decode
+import String
+import WordList exposing (getTodaysWord, getWordList)
 
 
 
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Int Model Msg
 main =
     Browser.element
         { init = init
@@ -29,42 +32,53 @@ main =
 
 
 type alias Model =
-    { current : List Char
-    , guesses : List (List (Char, Mark))
-    , answer : String
     -- TODO: Add an error message field
+    { current : List Char
+    , guesses : List (List ( Char, Mark ))
+    , answer : String
+    , words : List String
+    , now : Int
+    , error : String
     }
 
 
 type alias Mark =
-    Int -- -1=unknown, 0=absent, 1=present, 2=correct
+    -- -1=unknown, 0=absent, 1=present, 2=correct
+    Int
+
 
 toString : Mark -> String
 toString mark =
     case mark of
-    0 ->
-        "absent"
-    1 ->
-        "present"
-    2 ->
-        "correct"
-    _ -> 
-        "unknown"
-    
+        0 ->
+            "absent"
+
+        1 ->
+            "present"
+
+        2 ->
+            "correct"
+
+        _ ->
+            "unknown"
 
 
-emptyModel : Model
-emptyModel =
+emptyModel : Int -> Model
+emptyModel now =
     { current = []
     , guesses = []
-    , answer = "OPALS" -- TODO: RE.choice ["WORKS", "FLAKE", "OPALS"]
+    , answer = "OPALS"
+    , words = []
+    , now = now
+    , error = ""
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Maybe.withDefault emptyModel Nothing
-    , Cmd.none
+init : Int -> ( Model, Cmd Msg )
+init now =
+    ( emptyModel now
+    , getWordList
+        |> Cmd.map WordsLoaded
     )
 
 
@@ -73,8 +87,10 @@ init _ =
 
 
 type Msg
-    = Character Char
+    = NoOp
+    | Character Char
     | Control String
+    | WordsLoaded (Result Http.Error (List String))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -82,36 +98,39 @@ update msg model =
     case msg of
         Character char ->
             -- Process a letter being typed.
-            -- It should be added to model.current if there is room
-            -- TODO: More character filtering
-            if List.length model.guesses == 6 then
-                ( model, Cmd.none )
-
-            else if List.length model.current < 5 then
-                ( { model | current = char :: model.current }
+            if (List.length model.current < 5) && Char.isAlpha char then
+                -- Only if there is a room and it's a letter
+                ( { model | current = char :: model.current, error = "" }
                 , Cmd.none
                 )
 
             else
-                ( model, Cmd.none )
+                -- Truly ignore errant input - no message
+                ( { model | error = "" }, Cmd.none )
 
         Control "Enter" ->
             -- Process a submission.
-            -- This should only do anything if there are 5 letters available.
-            if List.length model.current == 5 then
+            if not (List.length model.current == 5) then
+                -- This should only do anything if there are 5 letters available
+                ( { model | error = "Not enough letters" }, Cmd.none )
+
+            else
                 let
                     guess =
                         List.reverse model.current
                 in
-                ( { model
-                    | current = []
-                    , guesses = checkGuess guess model.answer :: model.guesses
-                  }
-                , Cmd.none
-                )
+                if not (List.member (String.fromList guess) model.words) then
+                    -- AND the guess is a word
+                    ( { model | error = "Not in word list" }, Cmd.none )
 
-            else
-                ( model, Cmd.none )
+                else
+                    ( { model
+                        | current = []
+                        , guesses = checkGuess guess model.answer :: model.guesses
+                        , error = ""
+                      }
+                    , Cmd.none
+                    )
 
         Control "Backspace" ->
             -- Remove the last letter
@@ -124,26 +143,36 @@ update msg model =
                         [] ->
                             []
             in
-            ( { model | current = old }, Cmd.none )
+            ( { model | current = old, error = "" }, Cmd.none )
+
+        WordsLoaded (Ok words) ->
+            let
+                answer =
+                    getTodaysWord model.now words
+            in
+            ( { model | words = words, answer = answer, error = "" }, Cmd.none )
+
+        WordsLoaded (Err _) ->
+            ( { model | error = "Word list could not be loaded!" }, Cmd.none )
 
         _ ->
-            ( model, Cmd.none )
+            ( { model | error = "" }, Cmd.none )
 
 
-checkChars : String -> ( Char, Char ) -> (Char, Mark)
+checkChars : String -> ( Char, Char ) -> ( Char, Mark )
 checkChars fullAnswer ( guess, answer ) =
     -- TODO (maybe): make wordle-complete in terms of repeated guesses
     if guess == answer then
-        (guess, 2)
+        ( guess, 2 )
 
     else if String.contains (String.fromChar guess) fullAnswer then
-        (guess, 1)
+        ( guess, 1 )
 
     else
-        (guess, 0)
+        ( guess, 0 )
 
 
-checkGuess : List Char -> String -> List (Char, Mark)
+checkGuess : List Char -> String -> List ( Char, Mark )
 checkGuess guess answer =
     List.map
         (checkChars answer)
@@ -163,6 +192,7 @@ view model =
     div
         [ Attr.class "wordelm-app" ]
         [ heading
+        , viewError model.error
         , viewBoard model
         , viewKeyboard
         ]
@@ -173,34 +203,43 @@ heading =
     h1 [ Attr.class "heading" ] [ text "Wordelm" ]
 
 
+viewError : String -> Html Msg
+viewError error =
+    div
+        [ Attr.class "error-text" ]
+        [ Html.text error ]
+
+
 viewBoard : Model -> Html Msg
 viewBoard model =
     div
         [ Attr.class "board" ]
-        ( (List.reverse (List.map viewRow model.guesses)) ++ 
-        [viewCurrent model.current] )
+        (List.reverse (List.map viewRow model.guesses)
+            ++ [ viewCurrent model.current ]
+        )
 
 
-viewRow : List (Char, Mark) -> Html Msg
+viewRow : List ( Char, Mark ) -> Html Msg
 viewRow guesses =
     div
         [ Attr.class "row" ]
         (List.map viewScoredTile guesses)
 
+
 viewCurrent : List Char -> Html Msg
 viewCurrent current =
-    div 
+    div
         [ Attr.class "row" ]
         (List.reverse (List.map viewTile current))
 
 
-viewScoredTile : (Char, Mark) -> Html Msg
-viewScoredTile (letter, mark) =
+viewScoredTile : ( Char, Mark ) -> Html Msg
+viewScoredTile ( letter, mark ) =
     div
         [ Attr.class "tile" ]
-        [  div
-            [ Attr.class ("tile-" ++ (toString mark)) ]
-            [ Html.text (String.fromChar letter) ]
+        [ div
+            [ Attr.class ("tile-" ++ toString mark) ]
+            [ Html.text (String.fromChar (Char.toUpper letter)) ]
         ]
 
 
@@ -208,38 +247,40 @@ viewTile : Char -> Html Msg
 viewTile letter =
     div
         [ Attr.class "tile" ]
-        [ Html.text (String.fromChar letter) ]
+        [ Html.text (String.fromChar (Char.toUpper letter)) ]
 
 
 viewKeyboard : Html Msg
 viewKeyboard =
     div
         [ Attr.class "keyboard" ]
-        ( List.map viewKeyboardRow ["QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<"] )
+        (List.map viewKeyboardRow [ "QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<" ])
 
 
 viewKeyboardRow : String -> Html Msg
 viewKeyboardRow row =
     div
         [ Attr.class "keyboard-row" ]
-        ( List.map viewKeyboardKey (String.toList row) )
+        (List.map viewKeyboardKey (String.toList row))
 
 
-translateKey: Char -> String
+translateKey : Char -> String
 translateKey key =
     if key == ' ' then
         "Enter"
+
     else if key == '<' then
         "Backspace"
+
     else
-        ( String.fromChar key )
+        String.fromChar key
 
 
 viewKeyboardKey : Char -> Html Msg
 viewKeyboardKey key =
     Html.button
-        [ Attr.class "keyboard-key" 
-        , onClick ( toKey ( translateKey key ) )
+        [ Attr.class "keyboard-key"
+        , onClick (toKey (translateKey key))
         ]
         [ Html.text (translateKey key) ]
 
@@ -262,7 +303,7 @@ toKey : String -> Msg
 toKey string =
     case String.uncons string of
         Just ( char, "" ) ->
-            Character (Char.toUpper char)
+            Character (Char.toLower char)
 
         _ ->
             Control string
