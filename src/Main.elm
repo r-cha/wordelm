@@ -31,15 +31,32 @@ main =
 
 -- MODEL
 
+type GameState
+    = Playing
+    | Won
+    | Lost
 
 type alias Model =
-    -- TODO: Add an error message field
     { current : List Char
     , guesses : List (List ( Char, Mark ))
     , answer : String
     , words : List String
     , now : Int
     , error : String
+    , gameState : GameState
+    , message : String
+    }
+
+emptyModel : Int -> Model
+emptyModel now =
+    { current = []
+    , guesses = []
+    , answer = "OPALS"
+    , words = []
+    , now = now
+    , error = ""
+    , gameState = Playing
+    , message = ""
     }
 
 
@@ -62,17 +79,6 @@ toString mark =
 
         _ ->
             "unknown"
-
-
-emptyModel : Int -> Model
-emptyModel now =
-    { current = []
-    , guesses = []
-    , answer = "OPALS"
-    , words = []
-    , now = now
-    , error = ""
-    }
 
 
 init : Int -> ( Model, Cmd Msg )
@@ -99,7 +105,11 @@ update msg model =
     case msg of
         Character char ->
             -- Process a letter being typed.
-            if (List.length model.current < 5) && Char.isAlpha char then
+            if model.gameState /= Playing then
+                -- If the game is not in the 'Playing' state, ignore the input
+                ( model, Cmd.none )
+
+            else if (List.length model.current < 5) && Char.isAlpha char then
                 -- Only if there is a room and it's a letter
                 ( { model | current = char :: model.current, error = "" }
                 , Cmd.none
@@ -110,8 +120,11 @@ update msg model =
                 ( { model | error = "" }, Cmd.none )
 
         Control "Enter" ->
-            -- Process a submission.
-            if not (List.length model.current == 5) then
+            if model.gameState /= Playing then
+                -- If the game is not in the 'Playing' state, ignore the input
+                ( model, Cmd.none )
+
+            else if List.length model.current /= 5 then
                 -- This should only do anything if there are 5 letters available
                 ( { model | error = "Not enough letters" }, Cmd.none )
 
@@ -125,10 +138,32 @@ update msg model =
                     ( { model | error = "Not in word list" }, Cmd.none )
 
                 else
+                    let
+                        newGuesses = checkGuess guess model.answer :: model.guesses
+                        newGameState =
+                            if String.fromList guess == model.answer then
+                                Won
+                            else if List.length newGuesses == 6 then
+                                Lost
+                            else
+                                Playing
+                        newMessage =
+                            case newGameState of
+                                Won ->
+                                    "Congratulations! You guessed the word!"
+
+                                Lost ->
+                                    "Sorry, you've used all your guesses. Try again tomorrow!"
+
+                                _ ->
+                                    ""
+                    in
                     ( { model
                         | current = []
-                        , guesses = checkGuess guess model.answer :: model.guesses
+                        , guesses = newGuesses
                         , error = ""
+                        , gameState = newGameState
+                        , message = newMessage
                       }
                     , Cmd.none
                     )
@@ -235,7 +270,17 @@ view model =
         , viewError model.error
         , viewBoard model
         , viewKeyboard model
+        , viewMessage model.message
         ]
+
+viewMessage : String -> Html Msg
+viewMessage message =
+    if String.isEmpty message then
+        text ""
+    else
+        div
+            [ Attr.class "message" ]
+            [ text message ]
 
 
 heading : Html Msg
