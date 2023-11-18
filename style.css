@@ -147,3 +147,15 @@ body {
     align-items: center;
     text-transform: uppercase;
 }
+
+.keyboard-key-absent {
+    color: var(--color-absent)
+}
+
+.keyboard-key-present {
+    color: var(--color-present);
+}
+
+.keyboard-key-correct {
+    color: var(--color-correct);
+}

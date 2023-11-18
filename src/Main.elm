@@ -4,6 +4,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events exposing (onKeyDown)
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events exposing (onClick)
@@ -182,6 +183,25 @@ checkGuess guess answer =
             (String.toList answer)
         )
 
+getLetterMarks : Model -> Dict Char Mark
+getLetterMarks model =
+    model.guesses
+        |> List.concat
+        |> List.foldl
+            (\( char, mark ) dict ->
+                Dict.update char
+                    (\maybeMark ->
+                        case maybeMark of
+                            Just existingMark ->
+                                Just (max existingMark mark)
+
+                            Nothing ->
+                                Just mark
+                    )
+                    dict
+            )
+            Dict.empty
+
 
 
 -- VIEW
@@ -194,7 +214,7 @@ view model =
         [ heading
         , viewError model.error
         , viewBoard model
-        , viewKeyboard
+        , viewKeyboard model
         ]
 
 
@@ -289,18 +309,22 @@ viewTile letter =
         [ Html.text tileContent ]
 
 
-viewKeyboard : Html Msg
-viewKeyboard =
+viewKeyboard : Model -> Html Msg
+viewKeyboard model =
+    let
+        marksDict =
+            getLetterMarks model
+    in
     div
         [ Attr.class "keyboard" ]
-        (List.map viewKeyboardRow [ "QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<" ])
+        (List.map (viewKeyboardRow marksDict) [ "QWERTYUIOP", "ASDFGHJKL", " ZXCVBNM<" ])
 
 
-viewKeyboardRow : String -> Html Msg
-viewKeyboardRow row =
+viewKeyboardRow : Dict Char Mark -> String -> Html Msg
+viewKeyboardRow marksDict row =
     div
         [ Attr.class "keyboard-row" ]
-        (List.map viewKeyboardKey (String.toList row))
+        (List.map (viewKeyboardKey marksDict) (String.toList row))
 
 
 translateKey : Char -> String
@@ -315,13 +339,23 @@ translateKey key =
         String.fromChar key
 
 
-viewKeyboardKey : Char -> Html Msg
-viewKeyboardKey key =
+viewKeyboardKey : Dict Char Mark -> Char -> Html Msg
+viewKeyboardKey marksDict key =
+    let
+        keyString = translateKey key
+        markClass =
+            case Dict.get (Char.toLower key) marksDict of
+                Just mark ->
+                    " keyboard-key-" ++ toString mark
+
+                Nothing ->
+                    ""
+    in
     Html.button
-        [ Attr.class "keyboard-key"
-        , onClick (toKey (translateKey key))
+        [ Attr.class ("keyboard-key" ++ markClass)
+        , onClick (toKey keyString)
         ]
-        [ Html.text (translateKey key) ]
+        [ Html.text keyString ]
 
 
 
