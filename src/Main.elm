@@ -212,11 +212,32 @@ viewError error =
 
 viewBoard : Model -> Html Msg
 viewBoard model =
+    let
+        maxGuesses =
+            6  -- Maximum number of guesses (rows)
+
+        emptyGuess =
+            List.repeat 5 (' ', 0)
+
+        -- Create a list of rows for the guesses made so far
+        guessRows =
+            List.map viewRow model.guesses
+
+        -- Calculate the number of empty rows needed to fill the board
+        emptyRowsCount =
+            maxGuesses - List.length model.guesses - 1  -- Subtract 1 for the current guess row
+
+        -- Create a list of empty rows
+        emptyRows =
+            List.repeat emptyRowsCount (viewRow emptyGuess)
+
+        -- Combine the guess rows with the empty rows
+        allRows =
+            List.reverse guessRows ++ [viewCurrent model.current] ++ emptyRows  -- Include the current guess row
+    in
     div
         [ Attr.class "board" ]
-        (List.reverse (List.map viewRow model.guesses)
-            ++ [ viewCurrent model.current ]
-        )
+        allRows
 
 
 viewRow : List ( Char, Mark ) -> Html Msg
@@ -228,9 +249,20 @@ viewRow guesses =
 
 viewCurrent : List Char -> Html Msg
 viewCurrent current =
-    div
-        [ Attr.class "row" ]
-        (List.reverse (List.map viewTile current))
+    let
+        emptyTilesCount =
+            5 - List.length current
+
+        emptyTiles =
+            List.repeat emptyTilesCount (' ', 0)
+
+        currentTiles =
+            List.map (\char -> (char, -1)) (List.reverse current)  -- Use -1 for unknown mark
+
+        fullRow =
+            currentTiles ++ emptyTiles  -- Combine current tiles with empty tiles to make a full row
+    in
+    viewRow fullRow
 
 
 viewScoredTile : ( Char, Mark ) -> Html Msg
@@ -245,9 +277,16 @@ viewScoredTile ( letter, mark ) =
 
 viewTile : Char -> Html Msg
 viewTile letter =
+    let
+        tileContent =
+            if letter == ' ' then
+                ""
+            else
+                String.fromChar (Char.toUpper letter)
+    in
     div
         [ Attr.class "tile" ]
-        [ Html.text (String.fromChar (Char.toUpper letter)) ]
+        [ Html.text tileContent ]
 
 
 viewKeyboard : Html Msg
