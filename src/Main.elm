@@ -310,7 +310,7 @@ viewBoard model =
 
         -- Calculate the number of empty rows needed to fill the board
         emptyRowsCount =
-            maxGuesses - List.length model.guesses - 1  -- Subtract 1 for the current guess row
+            maxGuesses - List.length model.guesses
 
         -- Create a list of empty rows
         emptyRows =
@@ -318,7 +318,12 @@ viewBoard model =
 
         -- Combine the guess rows with the empty rows
         allRows =
-            List.reverse guessRows ++ [viewCurrent model.current] ++ emptyRows  -- Include the current guess row
+            if model.gameState == Playing then
+                -- If the game is still in progress, include the current guess row
+                List.reverse guessRows ++ [viewCurrent model.current] ++ List.drop 1 emptyRows
+            else
+                -- If the game is over, just show the guess rows
+                List.reverse guessRows ++ emptyRows
     in
     div
         [ Attr.class "board" ]
