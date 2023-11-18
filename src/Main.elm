@@ -162,7 +162,6 @@ update msg model =
 
 checkChars : String -> ( Char, Char ) -> ( Char, Mark )
 checkChars fullAnswer ( guess, answer ) =
-    -- TODO (maybe): make wordle-complete in terms of repeated guesses
     if guess == answer then
         ( guess, 2 )
 
@@ -175,13 +174,34 @@ checkChars fullAnswer ( guess, answer ) =
 
 checkGuess : List Char -> String -> List ( Char, Mark )
 checkGuess guess answer =
-    List.map
-        (checkChars answer)
-        (List.map2
-            Tuple.pair
-            guess
-            (String.toList answer)
-        )
+    let
+        answerList = String.toList answer
+        initialMarks = List.map2 (\g a -> if g == a then 2 else -1) guess answerList
+        answerCharCounts = List.foldl (\char dict -> Dict.update char (\maybeVal -> Just (1 + Maybe.withDefault 0 maybeVal)) dict) Dict.empty answerList
+        (finalMarks, _) =
+            List.foldl
+                (\( g, m ) ( marks, counts ) ->
+                    case m of
+                        2 ->
+                            -- If the character is in the correct position, mark it as such and decrement the count.
+                            ( ( g, m ) :: marks, Dict.update g (\maybeVal -> Maybe.map (\val -> val - 1) maybeVal) counts )
+
+                        _ ->
+                            -- If the character is not in the correct position, check if it exists elsewhere.
+                            let
+                                count = Maybe.withDefault 0 (Dict.get g counts)
+                            in
+                            if count > 0 then
+                                -- If the character exists and hasn't been fully matched yet, mark it as present and decrement the count.
+                                ( ( g, 1 ) :: marks, Dict.update g (\maybeVal -> Maybe.map (\val -> val - 1) maybeVal) counts )
+                            else
+                                -- If the character doesn't exist or has been fully matched, mark it as absent.
+                                ( ( g, 0 ) :: marks, counts )
+                )
+                ([], answerCharCounts)
+                (List.map2 Tuple.pair guess initialMarks)
+    in
+    List.reverse finalMarks
 
 getLetterMarks : Model -> Dict Char Mark
 getLetterMarks model =
